@@ -8,61 +8,27 @@
 import {canUseDOM} from 'shared/ExecutionEnvironment';
 
 /**
- * Generate a mapping of standard vendor prefixes using the defined style property and event name.
- *
- * @param {string} styleProp
- * @param {string} eventName
- * @returns {object}
- */
-function makePrefixMap(styleProp, eventName) {
-  const prefixes = {};
-
-  prefixes[styleProp.toLowerCase()] = eventName.toLowerCase();
-  prefixes['Webkit' + styleProp] = 'webkit' + eventName;
-  prefixes['Moz' + styleProp] = 'moz' + eventName;
-
-  return prefixes;
-}
-
-/**
- * A list of event names to a configurable list of vendor prefixes.
- */
-const vendorPrefixes = {
-  animationend: makePrefixMap('Animation', 'AnimationEnd'),
-  animationiteration: makePrefixMap('Animation', 'AnimationIteration'),
-  animationstart: makePrefixMap('Animation', 'AnimationStart'),
-  transitionend: makePrefixMap('Transition', 'TransitionEnd'),
-};
-
-/**
  * Event names that have already been detected and prefixed (if applicable).
  */
-const prefixedEventNames = {};
-
-/**
- * Element to check for prefixes on.
- */
-let style = {};
+const prefixedEventNames = {
+  animationend: 'animationend',
+  animationiteration: 'animationiteration',
+  animationstart: 'animationstart',
+  transitionend: 'transitionend'
+};
 
 /**
  * Bootstrap if a DOM exists.
  */
 if (canUseDOM) {
-  style = document.createElement('div').style;
-
-  // On some platforms, in particular some releases of Android 4.x,
-  // the un-prefixed "animation" and "transition" properties are defined on the
-  // style object but the events that fire will still be prefixed, so we need
-  // to check if the un-prefixed events are usable, and if not remove them from the map.
-  if (!('AnimationEvent' in window)) {
-    delete vendorPrefixes.animationend.animation;
-    delete vendorPrefixes.animationiteration.animation;
-    delete vendorPrefixes.animationstart.animation;
+  if (!('AnimationEvent' in window) && ('WebKitAnimationEvent' in window)) {
+    prefixedEventNames.animationend = 'webkitAnimationend';
+    prefixedEventNames.animationiteration = 'webkitAnimationiteration';
+    prefixedEventNames.animationstart = 'webkitAnimationstart';
   }
 
-  // Same as above
-  if (!('TransitionEvent' in window)) {
-    delete vendorPrefixes.transitionend.transition;
+  if (!('TransitionEvent' in window) && ('WebKitTransitionEvent' in window)) {
+    prefixedEventNames.transitionend = 'webkitTransitionend';
   }
 }
 
@@ -75,16 +41,6 @@ if (canUseDOM) {
 function getVendorPrefixedEventName(eventName) {
   if (prefixedEventNames[eventName]) {
     return prefixedEventNames[eventName];
-  } else if (!vendorPrefixes[eventName]) {
-    return eventName;
-  }
-
-  const prefixMap = vendorPrefixes[eventName];
-
-  for (const styleProp in prefixMap) {
-    if (prefixMap.hasOwnProperty(styleProp) && styleProp in style) {
-      return (prefixedEventNames[eventName] = prefixMap[styleProp]);
-    }
   }
 
   return eventName;
